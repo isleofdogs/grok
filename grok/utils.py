@@ -35,8 +35,11 @@ class Downloader:
     def _bytes_ranges(self):
         starts = range(0,self.length,self.chunksize)
         ends = range(self.chunksize-1,self.length,self.chunksize)
-        ranges = [Chunk(self.url, s, e, self.key) for s,e in zip_longest(starts,ends,fillvalue=self.length-1)]
+        ranges = zip_longest(starts,ends,fillvalue=self.length-1)
         return ranges
+
+    def progress(self):
+        pass
 
 class Chunk:
     def __init__(self, url, start, end, key):
