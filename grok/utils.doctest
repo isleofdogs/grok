@@ -7,6 +7,8 @@ True
 101
 >>> len(downloader.unfinished_chunks)
 101
+>>> downloader.progress()['%']
+0.0
 >>> from utils import Chunk
 >>> chunk = Chunk(url, 1000, 2000, 'fakekey')
 >>> chunk.size_expected 

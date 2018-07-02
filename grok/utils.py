@@ -49,6 +49,14 @@ class Downloader:
     def __iter__(self):
         return iter(self._chunks)
 
+    def progress(self):
+        unfinished = len(self.unfinished_chunks)
+        total = len(self._chunks)
+        report = {
+            '%':  (1-unfinished/total)*100
+        }
+        return report
+
     @property
     def unfinished_chunks(self):
         chunks = [chunk for chunk in self._chunks if not chunk.finished]
