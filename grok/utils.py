@@ -14,17 +14,22 @@ class Downloader:
     def __init__(self, url):
         self.url = url
         self.chunksize = 1024 * 1024
-        self.length = 104857610
+        self._res = self._raw_res()
         self.key = self._generate_hash()
         self._chunks = self._make_chunks()
         
+
+    @property
+    def size(self):
+        size = int(self._res.headers['Content-Length'])
+        return size
 
     def _generate_hash(self):
         key_text = splittype(self.url)[1].strip('/').encode()
         key = hashlib.md5(key_text).hexdigest()
         return key
 
-    def raw_res(self):
+    def _raw_res(self):
         res = requests.get(self.url, stream=True)
         return res
 
@@ -34,9 +39,9 @@ class Downloader:
                 exe.submit(item.fetch)
         
     def _bytes_ranges(self):
-        starts = range(0,self.length,self.chunksize)
-        ends = range(self.chunksize-1,self.length,self.chunksize)
-        ranges = zip_longest(starts,ends,fillvalue=self.length-1)
+        starts = range(0,self.size,self.chunksize)
+        ends = range(self.chunksize-1,self.size,self.chunksize)
+        ranges = zip_longest(starts,ends,fillvalue=self.size-1)
         return ranges
 
     def _make_chunks(self):
