@@ -4,11 +4,8 @@ import requests
 import json
 import os
 from itertools import zip_longest
+from concurrent.futures import ThreadPoolExecutor
 
-STATUS = {
-    'saved': 'S',
-    'exists': 'E',
-}
 parts_dir = os.path.expanduser('~/parts')
 class Downloader:
     def __init__(self, url):
@@ -17,6 +14,7 @@ class Downloader:
         self._res = self._make_request()
         self._fix_chunk_params()
         self._chunks = self._make_chunks()
+        self.filename = self._filename()
 
     def _fix_chunk_params(self):
         params = {
@@ -24,6 +22,9 @@ class Downloader:
             'key': self._generate_hash()
         }
         Chunk.fix_params(params)
+
+    def _filename(self):
+        return os.path.join(parts_dir, 'foo')
 
     @property
     def size(self):
@@ -39,10 +40,11 @@ class Downloader:
         res = requests.get(self.url, stream=True)
         return res
 
-    def download(self):
+    def start(self):
+        print('started')
         with ThreadPoolExecutor(max_workers=5) as exe:
-            for item in self._bytes_ranges():
-                exe.submit(item.fetch)
+            for chunk in self.unfinished_chunks[0:10]:
+                exe.submit(chunk.fetch)
         
     def _bytes_ranges(self):
         starts = range(0,self.size,self.chunk_size)
@@ -73,6 +75,12 @@ class Downloader:
     def unfinished_chunks(self):
         chunks = [chunk for chunk in self._chunks if not chunk.finished]
         return chunks
+
+    def assemble_chunks(self):
+        with open(self.filename,'wb') as outf:
+            for chunk in self._chunks:
+                with open(chunk.filename,'rb') as inf:
+                    outf.write(inf.read())
 
 class Chunk:
     def __init__(self, start, end):
