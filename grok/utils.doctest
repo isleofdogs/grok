@@ -3,3 +3,11 @@
 >>> downloader = Downloader(url)
 >>> downloader.url == url
 True
+>>> from utils import Chunk
+>>> chunk = Chunk(url, 1000, 2000, 'fakekey')
+>>> chunk.size_expected 
+1001
+>>> chunk.exists
+False
+>>> chunk.exists and chunk.of_correct_size
+False
