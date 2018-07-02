@@ -13,7 +13,7 @@ parts_dir = os.path.expanduser('~/parts')
 class Downloader:
     def __init__(self, url):
         self.url = url
-        self.chunksize = 1024 * 1024
+        self.chunk_size = 1024 * 1024
         self._res = self._raw_res()
         self._fix_chunk_params()
         self._chunks = self._make_chunks()
@@ -45,8 +45,8 @@ class Downloader:
                 exe.submit(item.fetch)
         
     def _bytes_ranges(self):
-        starts = range(0,self.size,self.chunksize)
-        ends = range(self.chunksize-1,self.size,self.chunksize)
+        starts = range(0,self.size,self.chunk_size)
+        ends = range(self.chunk_size-1,self.size,self.chunk_size)
         ranges = zip_longest(starts,ends,fillvalue=self.size-1)
         return ranges
 
