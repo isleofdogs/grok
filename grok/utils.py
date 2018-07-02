@@ -14,7 +14,7 @@ class Downloader:
     def __init__(self, url):
         self.url = url
         self.chunk_size = 1024 * 1024
-        self._res = self._raw_res()
+        self._res = self._make_request()
         self._fix_chunk_params()
         self._chunks = self._make_chunks()
 
@@ -35,7 +35,7 @@ class Downloader:
         key = hashlib.md5(key_text).hexdigest()
         return key
 
-    def _raw_res(self):
+    def _make_request(self):
         res = requests.get(self.url, stream=True)
         return res
 
@@ -100,12 +100,12 @@ class Chunk:
         return self.end - self.start + 1
 
     @property
-    def size_present(self):
+    def size(self):
         return os.path.getsize(self.filename)
 
     @property
     def of_correct_size(self):
-        return self.size_expected == self.size_present
+        return self.size_expected == self.size
 
     @property
     def exists(self):
