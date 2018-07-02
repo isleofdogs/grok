@@ -9,7 +9,7 @@ True
 100
 >>> len(downloader.unfinished_chunks)
 100
->>> downloader.progress()['%']
+>>> downloader.progress['%']
 0.0
 >>> from utils import Chunk
 >>> Chunk.fix_params(params={'url': url,'key':'fakekey'})

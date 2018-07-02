@@ -60,6 +60,7 @@ class Downloader:
     def __iter__(self):
         return iter(self._chunks)
 
+    @property
     def progress(self):
         unfinished = len(self.unfinished_chunks)
         total = len(self._chunks)
@@ -121,4 +122,3 @@ class Chunk:
             with open(self.filename,'wb') as f:
                 for chunk in res.iter_content(chunk_size=1024):
                     f.write(chunk)
-        return STATUS['saved']
