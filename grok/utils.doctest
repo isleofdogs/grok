@@ -12,7 +12,8 @@ True
 >>> downloader.progress()['%']
 0.0
 >>> from utils import Chunk
->>> chunk = Chunk(url, 1000, 2000, 'fakekey')
+>>> Chunk.fix_params(params={'url': url,'key':'fakekey'})
+>>> chunk = Chunk(1000, 2000)
 >>> chunk.size_expected 
 1001
 >>> chunk.exists

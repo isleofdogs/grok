@@ -15,9 +15,15 @@ class Downloader:
         self.url = url
         self.chunksize = 1024 * 1024
         self._res = self._raw_res()
-        self.key = self._generate_hash()
+        self._fix_chunk_params()
         self._chunks = self._make_chunks()
-        
+
+    def _fix_chunk_params(self):
+        params = {
+            'url': self.url,
+            'key': self._generate_hash()
+        }
+        Chunk.fix_params(params)
 
     @property
     def size(self):
@@ -45,7 +51,7 @@ class Downloader:
         return ranges
 
     def _make_chunks(self):
-        chunks = [Chunk(self.url, start, end, self.key) for start, end in self._bytes_ranges()]
+        chunks = [Chunk(start, end) for start, end in self._bytes_ranges()]
         return chunks
 
     def __len__(self):
@@ -68,13 +74,16 @@ class Downloader:
         return chunks
 
 class Chunk:
-    def __init__(self, url, start, end, key):
-        self.url = url
+    def __init__(self, start, end):
         self.start = start
         self.end = end
-        self.key = key
         self.filename = self._filename()
     
+    @classmethod
+    def fix_params(cls, params):
+        for param,val in params.items():
+            setattr(cls, param, val)
+
     @property
     def headers(self):
         headers = {
@@ -83,7 +92,7 @@ class Chunk:
         return headers
 
     def _filename(self):
-        name = '{}_{}_{}'.format(self.key, self.start, self.end)
+        name = '{}_{}_{}'.format(self.__class__.key, self.start, self.end)
         return os.path.join(parts_dir, name)
 
     @property
@@ -107,7 +116,8 @@ class Chunk:
         return self.exists and self.of_correct_size
 
     def fetch(self):
-        with requests.get(self.url, headers=self.headers, stream=True) as res:
+        url = self.__class__.url
+        with requests.get(url, headers=self.headers, stream=True) as res:
             with open(self.filename,'wb') as f:
                 for chunk in res.iter_content(chunk_size=1024):
                     f.write(chunk)
