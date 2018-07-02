@@ -9,7 +9,7 @@ STATUS = {
     'saved': 'S',
     'exists': 'E',
 }
-
+parts_dir = os.path.expanduser('~/parts')
 class Downloader:
     def __init__(self, url):
         self.url = url
@@ -55,7 +55,7 @@ class Chunk:
 
     def _filename(self):
         name = '{}_{}_{}'.format(self.key, self.start, self.end)
-        return os.path.join('parts',name)
+        return os.path.join(parts_dir, name)
 
     @property
     def size_expected(self):
