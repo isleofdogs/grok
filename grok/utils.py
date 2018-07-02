@@ -16,6 +16,7 @@ class Downloader:
         self.chunksize = 1024 * 1024
         self.length = 104857610
         self.key = self._generate_hash()
+        self._chunks = self._make_chunks()
         
 
     def _generate_hash(self):
@@ -38,8 +39,19 @@ class Downloader:
         ranges = zip_longest(starts,ends,fillvalue=self.length-1)
         return ranges
 
+    def _make_chunks(self):
+        chunks = [Chunk(self.url, start, end, self.key) for start, end in self._bytes_ranges()]
+        return chunks
+
+    def __len__(self):
+        return len(self._chunks)
+
     def __iter__(self):
-        chunks = (Chunk(self.url, start, end, self.key) for start, end in self._bytes_ranges())
+        return iter(self._chunks)
+
+    @property
+    def unfinished_chunks(self):
+        chunks = [chunk for chunk in self._chunks if not chunk.finished]
         return chunks
 
 class Chunk:
@@ -77,10 +89,11 @@ class Chunk:
     def exists(self):
         return os.path.isfile(self.filename)
 
-    def fetch(self):
-        if self.exists and self.of_correct_size:
-            return STATUS['exists']
+    @property
+    def finished(self):
+        return self.exists and self.of_correct_size
 
+    def fetch(self):
         with requests.get(self.url, headers=self.headers, stream=True) as res:
             with open(self.filename,'wb') as f:
                 for chunk in res.iter_content(chunk_size=1024):

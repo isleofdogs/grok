@@ -3,6 +3,10 @@
 >>> downloader = Downloader(url)
 >>> downloader.url == url
 True
+>>> len(downloader)
+101
+>>> len(downloader.unfinished_chunks)
+101
 >>> from utils import Chunk
 >>> chunk = Chunk(url, 1000, 2000, 'fakekey')
 >>> chunk.size_expected 
