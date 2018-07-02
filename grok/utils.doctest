@@ -1,0 +1,5 @@
+>>> from utils import Downloader
+>>> url ='https://speed.hetzner.de/100MB.bin'
+>>> downloader = Downloader(url)
+>>> downloader.url == url
+True
