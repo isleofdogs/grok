@@ -104,7 +104,7 @@ class Chunk:
         return os.path.getsize(self.filename)
 
     @property
-    def of_correct_size(self):
+    def is_of_expected_size(self):
         return self.size_expected == self.size
 
     @property
@@ -113,7 +113,7 @@ class Chunk:
 
     @property
     def finished(self):
-        return self.exists and self.of_correct_size
+        return self.exists and self.is_of_expected_size
 
     def fetch(self):
         url = self.__class__.url
