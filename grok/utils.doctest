@@ -1,12 +1,14 @@
 >>> from utils import Downloader
 >>> url ='https://speed.hetzner.de/100MB.bin'
 >>> downloader = Downloader(url)
+>>> downloader.size
+104857600
 >>> downloader.url == url
 True
 >>> len(downloader)
-101
+100
 >>> len(downloader.unfinished_chunks)
-101
+100
 >>> downloader.progress()['%']
 0.0
 >>> from utils import Chunk
