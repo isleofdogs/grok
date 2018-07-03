@@ -7,7 +7,9 @@ from itertools import zip_longest
 from concurrent.futures import ThreadPoolExecutor
 
 parts_dir = os.path.expanduser('~/parts')
-class Downloader:
+class Manager:
+    pass
+class Download:
     def __init__(self, url):
         self.url = url
         self.chunk_size = 1024 * 1024
@@ -53,6 +55,10 @@ class Downloader:
         return ranges
 
     def _make_chunks(self):
+        params = {
+            'url': self.url,
+            'key': self._generate_hash()
+        }
         chunks = [Chunk(start, end) for start, end in self._bytes_ranges()]
         return chunks
 
