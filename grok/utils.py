@@ -5,10 +5,50 @@ import json
 import os
 from itertools import zip_longest
 from concurrent.futures import ThreadPoolExecutor
+import pickle
+import glob
+from collections.abc import MutableMapping
 
 parts_dir = os.path.expanduser('~/parts')
-class Manager:
-    pass
+class Manager(MutableMapping):
+    def __init__(self, parts_dir=parts_dir):
+        self.parts_dir = parts_dir
+        self.name_ext = '.grok'
+        self.name_pat = os.path.join(self.parts_dir,'*{}'.format(self.name_ext))
+
+    def __iter__(self):
+        return (path_to_key(path) for path in self.filenames)
+
+    @property
+    def filenames(self):
+        return glob.glob(self.name_pat)
+        
+    def __len__(self):
+        return len(self.filenames)
+
+    def __setitem__(self, key, download):
+        path = self.key_to_path(key)
+        with open(path, 'wb') as f:
+            pickle.dump(download, f)
+
+    def __getitem__(self, key):
+        path = self.key_to_path(key)
+        with open(path, 'rb') as f:
+            download = pickle.load(f)
+        return download
+
+    def __delitem__(self, key):
+        path = self.key_to_path(key)
+        os.remove(path)
+
+    def key_to_path(self, key):
+        path = os.path.join(self.parts_dir,'{}{}'.format(key,self.name_ext))
+        return path
+
+    def path_to_key(self, path):
+        key = os.path.basename(path).rstrip(self.name_ext)
+        return key
+
 class Download:
     def __init__(self, url):
         self.url = url
