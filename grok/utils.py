@@ -31,6 +31,12 @@ class Manager(MutableMapping):
         with open(path, 'wb') as f:
             pickle.dump(download, f)
 
+        chunks_dir = self._chunks_dir(key)
+        os.makedirs(chunks_dir, exist_ok=True)
+
+    def _chunks_dir(self, key):
+        return os.path.join(self.parts_dir,key)
+
     def __getitem__(self, key):
         path = self.key_to_path(key)
         with open(path, 'rb') as f:
@@ -40,6 +46,8 @@ class Manager(MutableMapping):
     def __delitem__(self, key):
         path = self.key_to_path(key)
         os.remove(path)
+        chunks_dir = self._chunks_dir(key)
+        os.rmdir(chunks_dir)
 
     def key_to_path(self, key):
         path = os.path.join(self.parts_dir,'{}{}'.format(key,self.name_ext))
@@ -50,20 +58,28 @@ class Manager(MutableMapping):
         return key
 
 class Download:
-    def __init__(self, url):
+    def __init__(self, url, key):
         self.url = url
+        self.key = key
         self.chunk_size = 1024 * 1024
         self._res = self._make_request()
-        self._fix_chunk_params()
         self._chunks = self._make_chunks()
         self.filename = self._filename()
 
-    def _fix_chunk_params(self):
-        params = {
-            'url': self.url,
-            'key': self._generate_hash()
-        }
-        Chunk.fix_params(params)
+    def _path(self, start, end):
+        name = '{}-{}'.format(start, end)
+        path = os.path.join(parts_dir, self.key, name)
+        return path
+
+    def __getitem__(self, index):
+        return self._chunks[index]
+
+    def _make_chunks(self):
+        chunks = [
+            Chunk(start, end, self._path(start, end))
+            for start,end in self._ranges()
+        ]
+        return chunks
 
     def _filename(self):
         return os.path.join(parts_dir, 'foo')
@@ -79,66 +95,46 @@ class Download:
         return key
 
     def _make_request(self):
-        res = requests.get(self.url, stream=True)
+        res = requests.head(self.url)
         return res
 
     def start(self):
         print('started')
         with ThreadPoolExecutor(max_workers=5) as exe:
-            for chunk in self.unfinished_chunks[0:10]:
-                exe.submit(chunk.fetch)
+            for chunk in self:
+                if chunk.finished:
+                    continue
+                exe.submit(chunk.fetch, url=self.url)
         
-    def _bytes_ranges(self):
+    def _ranges(self):
         starts = range(0,self.size,self.chunk_size)
         ends = range(self.chunk_size-1,self.size,self.chunk_size)
         ranges = zip_longest(starts,ends,fillvalue=self.size-1)
         return ranges
 
-    def _make_chunks(self):
-        params = {
-            'url': self.url,
-            'key': self._generate_hash()
-        }
-        chunks = [Chunk(start, end) for start, end in self._bytes_ranges()]
-        return chunks
-
     def __len__(self):
         return len(self._chunks)
 
-    def __iter__(self):
-        return iter(self._chunks)
-
     @property
     def progress(self):
-        unfinished = len(self.unfinished_chunks)
-        total = len(self._chunks)
+        size = sum(chunk.size for chunk in self)
         report = {
-            '%':  (1-unfinished/total)*100
+            '%':  size/self.size*100
         }
         return report
-
-    @property
-    def unfinished_chunks(self):
-        chunks = [chunk for chunk in self._chunks if not chunk.finished]
-        return chunks
 
     def assemble_chunks(self):
         with open(self.filename,'wb') as outf:
             for chunk in self._chunks:
-                with open(chunk.filename,'rb') as inf:
+                with open(chunk.path,'rb') as inf:
                     outf.write(inf.read())
 
 class Chunk:
-    def __init__(self, start, end):
+    def __init__(self, start, end, path):
         self.start = start
         self.end = end
-        self.filename = self._filename()
+        self.path = path
     
-    @classmethod
-    def fix_params(cls, params):
-        for param,val in params.items():
-            setattr(cls, param, val)
-
     @property
     def headers(self):
         headers = {
@@ -146,17 +142,13 @@ class Chunk:
         }
         return headers
 
-    def _filename(self):
-        name = '{}_{}_{}'.format(self.__class__.key, self.start, self.end)
-        return os.path.join(parts_dir, name)
-
     @property
     def size_expected(self):
         return self.end - self.start + 1
 
     @property
     def size(self):
-        return os.path.getsize(self.filename)
+        return os.path.getsize(self.path)
 
     @property
     def is_of_expected_size(self):
@@ -164,15 +156,14 @@ class Chunk:
 
     @property
     def exists(self):
-        return os.path.isfile(self.filename)
+        return os.path.isfile(self.path)
 
     @property
     def finished(self):
         return self.exists and self.is_of_expected_size
 
-    def fetch(self):
-        url = self.__class__.url
-        with requests.get(url, headers=self.headers, stream=True) as res:
-            with open(self.filename,'wb') as f:
-                for chunk in res.iter_content(chunk_size=1024):
-                    f.write(chunk)
+    def fetch(self, url):
+        with open(self.path, 'wb') as f,\
+        requests.get(url, headers=self.headers, stream=True) as res:
+            for chunk in res.iter_content(chunk_size=1024):
+                f.write(chunk)
